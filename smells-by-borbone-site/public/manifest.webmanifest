@@ -1,0 +1,17 @@
+{
+  "name": "SmellS by Borbone",
+  "short_name": "SmellS",
+  "description": "Café italien à Sousse — commande & suivi.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#182b55",
+  "theme_color": "#182b55",
+  "lang": "fr",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/favicon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/favicon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

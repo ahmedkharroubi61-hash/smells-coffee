@@ -1,0 +1,12 @@
+# Supabase project config for SmellS by Borbone.
+# `project_id` is just a local label for the CLI — it does NOT have to match
+# your real project ref. You link to the real project with:
+#   supabase link --project-ref <your-ref>
+project_id = "smells-by-borbone"
+
+# The `api` function is the whole backend. It must be reachable WITHOUT a
+# Supabase JWT: Flouci's server-to-server webhook and the café's public
+# frontend both call it with no Supabase token. Auth that matters (menu
+# edits) is enforced inside the function via the x-admin-key header.
+[functions.api]
+verify_jwt = false

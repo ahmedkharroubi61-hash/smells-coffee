@@ -1,0 +1,27 @@
+# Local Netlify folder
+.netlify
+
+# Dependencies & build output
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+
+# Environment files & secrets — never commit these
+.env
+.env.*
+**/.env
+**/.env.*
+supabase/.env*
+!**/.env.example
+
+# OS / editor
+.DS_Store
+*.log
+
+# Local tooling
+.claude/
+
+# Other projects in this folder — not part of the SmellS site
+laromate/
+payment-backend/

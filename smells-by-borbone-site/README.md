@@ -27,23 +27,18 @@ npm run preview   # serve the production build locally, to sanity-check it
 
 ## Deploy it
 
-Any static host works. Two easy options:
-
-**Netlify** — drag the `dist/` folder onto [app.netlify.com/drop](https://app.netlify.com/drop),
-or with the CLI:
+This project deploys to **GitHub Pages** via GitHub Actions. Every push to
+`main` triggers `.github/workflows/deploy.yml`, which builds this folder and
+publishes `dist/` to Pages. So deploying is just:
 ```bash
-npm install -g netlify-cli
-netlify deploy --prod --dir=dist
+git add -A
+git commit -m "your change"
+git push
 ```
+The custom domain (`public/CNAME`) and HTTPS are handled by GitHub Pages.
 
-**Vercel**:
-```bash
-npm install -g vercel
-vercel --prod
-```
-(Vercel auto-detects Vite — point it at this folder and it builds + deploys.)
-
-Either way, add your own domain afterward from that host's dashboard.
+Any other static host works too (drop the `dist/` folder, or point Vercel/
+Cloudflare Pages at this folder — Vite is auto-detected).
 
 ## Three things this site needs before it's fully "live"
 

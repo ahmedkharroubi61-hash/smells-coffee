@@ -913,9 +913,20 @@ app.use(
   cors({
     origin: corsOrigin,
     allowHeaders: ["content-type", "x-admin-token", "x-staff-token", "x-customer-token"],
-    allowMethods: ["GET", "PUT", "POST", "PATCH", "OPTIONS"],
+    allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   }),
 );
+
+// Security headers on every API response. The API only ever returns JSON, so
+// these are safe: block MIME sniffing, forbid framing the API, never cache
+// (responses can contain order/staff data), and don't leak the referrer.
+app.use("*", async (c, next) => {
+  await next();
+  c.res.headers.set("X-Content-Type-Options", "nosniff");
+  c.res.headers.set("X-Frame-Options", "DENY");
+  c.res.headers.set("Referrer-Policy", "no-referrer");
+  c.res.headers.set("Cache-Control", "no-store");
+});
 
 // --- Admin login: password in, short-lived token out ---
 app.post("/admin-login", rateLimit({ windowMs: 60_000, max: 5 }), async (c) => {

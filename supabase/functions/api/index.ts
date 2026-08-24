@@ -1630,7 +1630,16 @@ app.patch("/supplies/:id", requireStaffOrAdmin, async (c) => {
     const patch: Record<string, unknown> = {};
     if (typeof body?.name === "string") patch.name = body.name.trim().slice(0, 40);
     if (typeof body?.unit === "string") patch.unit = body.unit.trim().slice(0, 20);
-    if (Array.isArray(body?.menuLinks)) patch.menu_links = body.menuLinks.filter((x: unknown) => typeof x === "string");
+    if (Array.isArray(body?.menuLinks)) {
+      // Links are {group, qty} objects; tolerate legacy bare-string entries.
+      patch.menu_links = body.menuLinks
+        .map((x: any) => {
+          if (typeof x === "string") return { group: x, qty: 1 };
+          if (x && typeof x.group === "string") return { group: x.group, qty: Number(x.qty) || 1 };
+          return null;
+        })
+        .filter(Boolean);
+    }
     if (Number.isFinite(Number(body?.lowThreshold))) patch.low_threshold = Number(body.lowThreshold);
     if (body?.quantity != null && Number.isFinite(Number(body.quantity))) {
       patch.quantity = Math.max(0, Number(body.quantity));

@@ -35,6 +35,10 @@ import {
 } from "./assets/images.js";
 import GlobalStyles from "./GlobalStyles.jsx";
 import { primeAudio, playChime, playAlarm, stopAlarm, isIOS, vibrateAlert } from "./lib/audio.js";
+import {
+  formatPrice, getBillTotal, getBillCount, slugify, orderErrorMessage,
+  staffTimeAgo, fmtDT, escapeHtml,
+} from "./lib/format.js";
 
 /* ==========================================================================
    SmellS — Digital Menu + In-Shop Bill & Payment
@@ -296,9 +300,6 @@ const shopConfig = {
 const PAYMENT_API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "https://ajpvlyizqzgtjlroeqdf.supabase.co/functions/v1";
 
-function formatPrice(amount) {
-  return `${amount.toFixed(3)} DT`;
-}
 
 /* --------- Web Push (installed-app notifications, incl. locked iPhone) ------- */
 
@@ -378,36 +379,6 @@ function currentTrackedOrderId() {
   }
 }
 
-function getBillTotal(bill, items) {
-  return Object.entries(bill).reduce((sum, [id, qty]) => {
-    const item = items.find((i) => i.id === id);
-    return item ? sum + item.price * qty : sum;
-  }, 0);
-}
-
-function getBillCount(bill) {
-  return Object.values(bill).reduce((sum, qty) => sum + qty, 0);
-}
-
-// Turns a new item's name into a unique id (e.g. "Thé à la Menthe" -> "the-a-la-menthe"),
-// appending -2, -3, ... if that slug is already taken.
-function slugify(name, existingIds) {
-  const base =
-    name
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-+|-+$)/g, "") || "article";
-  let candidate = base;
-  let n = 2;
-  while (existingIds.includes(candidate)) {
-    candidate = `${base}-${n}`;
-    n += 1;
-  }
-  return candidate;
-}
-
 // DEMO ONLY — simulates a payment provider round trip so the UI can be
 // reviewed end to end without a live backend. Never treat frontend-only
 // "success" as real payment confirmation in production — see
@@ -470,21 +441,6 @@ async function submitOrder({ bill, tableNumber, paymentMethod, customerName, cus
 }
 
 // Friendly French message for an order-submit error code.
-function orderErrorMessage(code) {
-  switch (code) {
-    case "too_many_pending":
-      return "Vous avez déjà plusieurs commandes en cours. Patientez qu'elles soient préparées avant d'en passer une autre.";
-    case "too_fast":
-      return "Trop de commandes en quelques secondes. Réessayez dans un instant.";
-    case "rate_limited":
-      return "Trop de tentatives. Merci de patienter une minute avant de réessayer.";
-    case "network":
-      return "Connexion perdue. Vérifiez votre réseau et réessayez.";
-    default:
-      return "Une erreur est survenue. Merci de réessayer.";
-  }
-}
-
 // Persist the manager session across refreshes ("save login"). The token
 // carries its own 8h expiry ("<expiryMs>.<sig>"), so a stale one is dropped on
 // read and the manager is asked for the password again.
@@ -4408,22 +4364,6 @@ const ORDER_FLOW = {
   ready: { label: "Prêt", next: "done", action: "Récupéré", color: "#15803d" },
 };
 
-function staffTimeAgo(iso) {
-  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  if (mins < 1) return "à l'instant";
-  if (mins === 1) return "il y a 1 min";
-  return `il y a ${mins} min`;
-}
-
-function fmtDT(millimes) {
-  return (Number(millimes || 0) / 1000).toFixed(3) + " DT";
-}
-
-function escapeHtml(s) {
-  return String(s ?? "").replace(/[&<>"']/g, (ch) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]
-  );
-}
 
 // Shared 72mm ticket shell — prints cleanly on a receipt/thermal printer but
 // works on any printer the phone or tablet can reach. `inner` is the body HTML.

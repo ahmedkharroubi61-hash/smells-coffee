@@ -1395,6 +1395,16 @@ function Footer() {
           </a>
         </div>
         <p className="sb-footer__copyright">© 2026 SmellS by Borbone. Tous droits réservés.</p>
+        <p className="sb-footer__credit">
+          Conçu par{" "}
+          <a
+            href="https://www.instagram.com/ahmed_kharroubi_/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Ahmed Kharroubi
+          </a>
+        </p>
         <a href="#admin" className="sb-footer__admin-link">
           Espace gérant
         </a>
@@ -3962,6 +3972,9 @@ function GlobalStyles() {
       .sb-footer__social a { color: var(--white-warm); opacity: .8; transition: opacity .25s ease, transform .25s ease; display: inline-flex; }
       .sb-footer__social a:hover { opacity: 1; transform: translateY(-2px); color: var(--brass-light); }
       .sb-footer__copyright { font-weight: 300; font-size: .75rem; color: rgba(253,251,245,.45); margin: 0; }
+      .sb-footer__credit { font-weight: 300; font-size: .75rem; color: rgba(253,251,245,.45); margin: 6px 0 0; }
+      .sb-footer__credit a { color: var(--brass-light); font-weight: 500; transition: color .2s ease; }
+      .sb-footer__credit a:hover { color: var(--white-warm); }
       .sb-footer__admin-link { display: inline-block; margin-top: 14px; font-size: .68rem; letter-spacing: .05em; color: rgba(253,251,245,.28); transition: color .2s ease; }
       .sb-footer__admin-link:hover { color: rgba(253,251,245,.6); }
 

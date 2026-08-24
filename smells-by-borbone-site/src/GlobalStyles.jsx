@@ -273,6 +273,25 @@ export default function GlobalStyles() {
       }
       @keyframes sb-cue { 0%,100% { opacity: .2; transform: translate(-50%,0); } 50% { opacity: 1; transform: translate(-50%,8px); } }
 
+      /* ---------- Signatures showcase ---------- */
+      .sb-sig { max-width: var(--max-width); margin: 0 auto; padding: 84px 24px 24px; }
+      .sb-sig__intro { text-align: center; max-width: 640px; margin: 0 auto 40px; }
+      .sb-sig__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      @media (min-width: 760px) { .sb-sig__grid { grid-template-columns: repeat(4, 1fr); gap: 20px; } }
+      .sb-sig__card {
+        background: var(--white-warm); border-radius: var(--radius-md); overflow: hidden;
+        border: 1px solid rgba(24,43,85,.1); box-shadow: 0 8px 26px rgba(24,43,85,.07);
+        display: flex; flex-direction: column; transition: transform .35s ease, box-shadow .35s ease;
+      }
+      .sb-sig__card:hover { transform: translateY(-5px); box-shadow: 0 18px 40px rgba(24,43,85,.14); }
+      .sb-sig__img { aspect-ratio: 1 / 1; background-size: cover; background-position: center; transition: transform .5s ease; }
+      .sb-sig__card:hover .sb-sig__img { transform: scale(1.05); }
+      .sb-sig__body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 3px; flex: 1; }
+      .sb-sig__name { font-family: var(--serif); font-weight: 600; font-size: 1.05rem; color: var(--navy); margin: 0; }
+      .sb-sig__desc { font-size: .82rem; font-weight: 300; color: rgba(20,33,63,.62); margin: 0; line-height: 1.4; flex: 1; }
+      .sb-sig__price { margin-top: 8px; font-family: var(--serif); font-weight: 600; font-size: .9rem; color: var(--brass); }
+      .sb-sig__cta { text-align: center; margin-top: 34px; }
+
       /* ---------- Menu ---------- */
       .sb-menu { max-width: var(--max-width); margin: 0 auto; padding: 90px 24px 130px; }
       @media (min-width: 880px) { .sb-menu { padding-bottom: 90px; } }

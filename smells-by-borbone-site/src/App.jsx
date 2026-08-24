@@ -31,7 +31,7 @@ import {
 import {
   LOGO_SRC, PHOTO_STOREFRONT, PHOTO_LATTE_ART, PHOTO_CAT_CHAIR, PHOTO_TIRAMISU,
   PHOTO_ICED_DUO, PHOTO_CARAMEL, PHOTO_OREO, PHOTO_REVIEW_LOAI, PHOTO_REVIEW_ONS,
-  PHOTO_REVIEW_KHAYREDDINE, PHOTO_REVIEW_PATRIZIA, PHOTO_REVIEW_ROCHDY,
+  PHOTO_REVIEW_KHAYREDDINE, PHOTO_REVIEW_PATRIZIA, PHOTO_REVIEW_ROCHDY, HERO_BG,
 } from "./assets/images.js";
 import GlobalStyles from "./GlobalStyles.jsx";
 import { primeAudio, playChime, playAlarm, stopAlarm, isIOS, vibrateAlert } from "./lib/audio.js";
@@ -854,6 +854,7 @@ function Hero({ onPrimaryCta, onSecondaryCta }) {
 
   return (
     <section id="hero" className="sb-hero" aria-label="Bienvenue">
+      <div className="sb-hero__photo" style={{ backgroundImage: `url(${HERO_BG})` }} aria-hidden="true" />
       <div className="sb-hero__texture" aria-hidden="true" />
       <div className="sb-hero__glow" aria-hidden="true" />
       <SteamCurves className="sb-hero__steam sb-hero__steam--left" />
@@ -1103,22 +1104,22 @@ function Gallery() {
 
       <div className="sb-gallery__grid">
         <Reveal as="figure" className="sb-gallery__item sb-gallery__item--tall">
-          <img src={PHOTO_LATTE_ART} alt="Latte art signature chez SmellS" loading="lazy" />
+          <img src={PHOTO_LATTE_ART} alt="Cappuccino latte art chez SmellS" loading="lazy" />
         </Reveal>
         <Reveal as="figure" className="sb-gallery__item" delay={60}>
-          <img src={PHOTO_CAT_CHAIR} alt="Coin salon feutré du café, avec son chat maison" loading="lazy" />
+          <img src={PHOTO_CAT_CHAIR} alt="Salle intérieure de SmellS — sièges bleus et lumière chaleureuse" loading="lazy" />
         </Reveal>
         <Reveal as="figure" className="sb-gallery__item" delay={120}>
-          <img src={PHOTO_TIRAMISU} alt="Tiramisù et café servis en terrasse, lumière d'après-midi" loading="lazy" />
+          <img src={PHOTO_TIRAMISU} alt="Dessert et café servis chez SmellS" loading="lazy" />
         </Reveal>
         <Reveal as="figure" className="sb-gallery__item sb-gallery__item--tall" delay={180}>
-          <img src={PHOTO_ICED_DUO} alt="Deux boissons glacées signature de SmellS" loading="lazy" />
+          <img src={PHOTO_ICED_DUO} alt="Boissons glacées signature bleues de SmellS" loading="lazy" />
         </Reveal>
         <Reveal as="figure" className="sb-gallery__item" delay={240}>
-          <img src={PHOTO_CARAMEL} alt="Boisson glacée au caramel et à la chantilly" loading="lazy" />
+          <img src={PHOTO_CARAMEL} alt="Café glacé signature de SmellS" loading="lazy" />
         </Reveal>
         <Reveal as="figure" className="sb-gallery__item" delay={300}>
-          <img src={PHOTO_OREO} alt="Dessert signature Oreo servi avec un café" loading="lazy" />
+          <img src={PHOTO_OREO} alt="Vitrine de pâtisseries maison chez SmellS" loading="lazy" />
         </Reveal>
       </div>
     </section>

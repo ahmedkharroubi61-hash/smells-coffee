@@ -225,6 +225,17 @@ export default function GlobalStyles() {
         min-height: 92vh; display: flex; align-items: center; justify-content: center;
         padding: 90px 24px 70px; text-align: center;
       }
+      /* Real café photo behind the hero, darkened with a navy wash so the
+         logo and text stay readable. */
+      .sb-hero__photo {
+        position: absolute; inset: 0; z-index: 0; pointer-events: none;
+        background-size: cover; background-position: center;
+        opacity: .3;
+      }
+      .sb-hero::after {
+        content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+        background: linear-gradient(165deg, rgba(14,27,59,.7) 0%, rgba(10,20,45,.9) 100%);
+      }
       .sb-hero__texture {
         position: absolute; inset: 0; pointer-events: none;
         background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);

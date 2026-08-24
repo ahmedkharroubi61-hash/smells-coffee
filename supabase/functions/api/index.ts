@@ -722,7 +722,7 @@ async function reverifyOrder(orderId: string): Promise<PaymentRow | null> {
   if (record.status === "pending") {
     try {
       const { result } = await flouciFetch(`/verify_payment/${record.payment_id}`);
-      let next = record.status;
+      let next: PaymentRow["status"] = record.status;
       if (result.status === "SUCCESS") next = "succeeded";
       else if (result.status === "FAILURE" || result.status === "EXPIRED") next = "failed";
       if (next !== record.status) {
@@ -836,7 +836,7 @@ async function hashPassword(password: string, saltHex?: string) {
   const salt = saltHex ? fromHex(saltHex) : crypto.getRandomValues(new Uint8Array(16));
   const km = await crypto.subtle.importKey("raw", te.encode(password), { name: "PBKDF2" }, false, ["deriveBits"]);
   const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt, iterations: 100_000, hash: "SHA-256" },
+    { name: "PBKDF2", salt: salt as BufferSource, iterations: 100_000, hash: "SHA-256" },
     km,
     256,
   );
@@ -930,7 +930,7 @@ async function requireCustomer(c: any, next: any) {
 
 // basePath must equal the function name — Supabase routes /functions/v1/api/*
 // to this function with the "/api" prefix intact.
-const app = new Hono().basePath("/api");
+const app = new Hono<{ Variables: { staffId: string; customerId: string } }>().basePath("/api");
 
 // Allowed browser origins. FRONTEND_ORIGIN may be a single origin or a
 // comma-separated list (e.g. the live site + localhost for dev). Unset → "*"

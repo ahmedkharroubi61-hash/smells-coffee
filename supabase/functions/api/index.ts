@@ -176,6 +176,7 @@ async function createOrder(o: {
   paymentMethod: string;
   customerName: string | null;
   customerId: string | null;
+  clientKey?: string | null;
 }): Promise<{ id: string; ref: string }> {
   const { data, error } = await supabase
     .from("orders")
@@ -188,6 +189,7 @@ async function createOrder(o: {
       payment_method: o.paymentMethod,
       customer_name: o.customerName,
       customer_id: o.customerId,
+      client_key: o.clientKey ?? null,
     })
     .select("id, ref")
     .single();
@@ -507,14 +509,13 @@ async function createSupply(s: { name: string; unit: string; quantity: number; l
 }
 
 async function updateSupply(id: string, patch: Record<string, unknown>, deltaQuantity?: number) {
-  // Delta adjustments read-modify-write so concurrent barista taps both count.
-  if (typeof deltaQuantity === "number") {
-    const { data: cur, error: e1 } = await supabase.from("supplies").select("quantity").eq("id", id).maybeSingle();
-    if (e1) throw e1;
-    if (!cur) return;
-    patch.quantity = Math.max(0, Number(cur.quantity) + deltaQuantity);
+  // Delta adjustments go through an atomic DB function so concurrent barista
+  // taps (or orders drawing the item down) can't clobber each other.
+  if (typeof deltaQuantity === "number" && deltaQuantity !== 0) {
+    const { error } = await supabase.rpc("adjust_supply_quantity", { p_id: id, p_delta: deltaQuantity });
+    if (error) throw error;
   }
-  if (Object.keys(patch).length === 0) return; // nothing to change — avoid an empty UPDATE
+  if (Object.keys(patch).length === 0) return; // nothing else to change
   const { error } = await supabase.from("supplies").update(patch).eq("id", id);
   if (error) throw error;
 }
@@ -539,7 +540,7 @@ async function consumeSuppliesForOrder(order: any) {
     groupQty[g] = (groupQty[g] ?? 0) + Number(it.quantity ?? 0);
   }
 
-  const { data: supplies } = await supabase.from("supplies").select("id, quantity, menu_links");
+  const { data: supplies } = await supabase.from("supplies").select("id, menu_links");
   for (const s of supplies ?? []) {
     let dec = 0;
     for (const e of (s.menu_links as any[]) ?? []) {
@@ -548,7 +549,7 @@ async function consumeSuppliesForOrder(order: any) {
       if (groupQty[grp]) dec += amt * groupQty[grp];
     }
     if (dec > 0) {
-      await supabase.from("supplies").update({ quantity: Math.max(0, Number(s.quantity) - dec) }).eq("id", s.id);
+      await supabase.rpc("adjust_supply_quantity", { p_id: s.id, p_delta: -dec }); // atomic
     }
   }
   await supabase.from("orders").update({ consumed: true }).eq("id", order.id);
@@ -568,7 +569,7 @@ async function restockSuppliesForOrder(order: any) {
     groupQty[g] = (groupQty[g] ?? 0) + Number(it.quantity ?? 0);
   }
 
-  const { data: supplies } = await supabase.from("supplies").select("id, quantity, menu_links");
+  const { data: supplies } = await supabase.from("supplies").select("id, menu_links");
   for (const s of supplies ?? []) {
     let inc = 0;
     for (const e of (s.menu_links as any[]) ?? []) {
@@ -577,7 +578,7 @@ async function restockSuppliesForOrder(order: any) {
       if (groupQty[grp]) inc += amt * groupQty[grp];
     }
     if (inc > 0) {
-      await supabase.from("supplies").update({ quantity: Number(s.quantity) + inc }).eq("id", s.id);
+      await supabase.rpc("adjust_supply_quantity", { p_id: s.id, p_delta: inc }); // atomic
     }
   }
 }
@@ -760,6 +761,37 @@ function rateLimit(opts: { windowMs: number; max: number }) {
   };
 }
 
+function clientIp(c: any): string {
+  return (
+    c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
+    c.req.header("cf-connecting-ip") ||
+    "unknown"
+  );
+}
+
+// Smart, DB-backed order anti-spam (reliable across Edge isolates, unlike the
+// in-memory limiter). Keyed by a hash of the client IP so no raw IP is stored.
+const MAX_ACTIVE_ORDERS_PER_CLIENT = 6; // unfinished orders one device may hold
+const MAX_ORDERS_PER_20S = 3; // burst cap
+// Returns an error code to block the order, or null to allow it.
+async function orderSpamCheck(clientKey: string | null): Promise<string | null> {
+  if (!clientKey) return null; // couldn't identify the device — let it through
+  const active = await supabase
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("client_key", clientKey)
+    .not("status", "in", "(done,cancelled)");
+  if ((active.count ?? 0) >= MAX_ACTIVE_ORDERS_PER_CLIENT) return "too_many_pending";
+  const since = new Date(Date.now() - 20_000).toISOString();
+  const recent = await supabase
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("client_key", clientKey)
+    .gte("created_at", since);
+  if ((recent.count ?? 0) >= MAX_ORDERS_PER_20S) return "too_fast";
+  return null;
+}
+
 // --- Admin auth (server-side) ---------------------------------------------
 // The admin logs in with a password that is checked HERE, against the
 // ADMIN_PASSWORD secret — never shipped to the browser. On success we mint a
@@ -915,7 +947,7 @@ app.use(
   cors({
     origin: corsOrigin,
     allowHeaders: ["content-type", "x-admin-token", "x-staff-token", "x-customer-token"],
-    allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   }),
 );
 
@@ -1153,9 +1185,17 @@ app.post("/order", rateLimit({ windowMs: 60_000, max: 20 }), async (c) => {
       if (cust) customerName = cust.name;
     }
     if (!Array.isArray(items) || items.length === 0) return c.json({ error: "no_items" }, 400);
+    if (items.length > 40) return c.json({ error: "too_many_items" }, 400); // sanity cap
+
+    // Smart anti-spam: block a device that's flooding orders. A logged-in
+    // customer is trusted (has an account), so only guests are checked.
+    const clientKey = customerId ? null : clientIp(c) === "unknown" ? null : await hmacHex(`ip:${clientIp(c)}`);
+    const spam = await orderSpamCheck(clientKey);
+    if (spam) return c.json({ error: spam }, 429);
 
     const menu = await getMenuItems();
     let totalMillimes = 0;
+    let totalQty = 0;
     const enriched: unknown[] = [];
     for (const line of items) {
       const p = menu.find((m) => m.id === line.id);
@@ -1164,9 +1204,11 @@ app.post("/order", rateLimit({ windowMs: 60_000, max: 20 }), async (c) => {
       if (!Number.isInteger(qty) || qty <= 0 || qty > 50) {
         return c.json({ error: "invalid_quantity", productId: line.id }, 400);
       }
+      totalQty += qty;
       totalMillimes += Math.round(p.price * 1000) * qty;
       enriched.push({ id: p.id, name: p.name, sizeLabel: p.sizeLabel ?? null, quantity: qty, price: p.price });
     }
+    if (totalQty > 200) return c.json({ error: "order_too_large" }, 400); // sanity cap
     if (totalMillimes <= 0) return c.json({ error: "invalid_amount" }, 400);
 
     const ref = String(Math.floor(Math.random() * 9000) + 1000); // 4-digit call-out code
@@ -1178,6 +1220,7 @@ app.post("/order", rateLimit({ windowMs: 60_000, max: 20 }), async (c) => {
       paymentMethod,
       customerName,
       customerId,
+      clientKey,
     });
     return c.json({ orderId: order.id, ref });
   } catch (err) {

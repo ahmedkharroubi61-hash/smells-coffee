@@ -489,10 +489,27 @@ async function submitOrder({ bill, tableNumber, paymentMethod, customerName, cus
       headers,
       body: JSON.stringify({ items, tableNumber, paymentMethod, customerName }),
     });
-    if (!res.ok) return null;
-    return await res.json();
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return { error: data?.error || (res.status === 429 ? "rate_limited" : "server_error") };
+    return data; // { orderId, ref }
   } catch {
-    return null;
+    return { error: "network" };
+  }
+}
+
+// Friendly French message for an order-submit error code.
+function orderErrorMessage(code) {
+  switch (code) {
+    case "too_many_pending":
+      return "Vous avez déjà plusieurs commandes en cours. Patientez qu'elles soient préparées avant d'en passer une autre.";
+    case "too_fast":
+      return "Trop de commandes en quelques secondes. Réessayez dans un instant.";
+    case "rate_limited":
+      return "Trop de tentatives. Merci de patienter une minute avant de réessayer.";
+    case "network":
+      return "Connexion perdue. Vérifiez votre réseau et réessayez.";
+    default:
+      return "Une erreur est survenue. Merci de réessayer.";
   }
 }
 
@@ -1507,6 +1524,7 @@ function PaymentPanel({
   onBackToBill,
   onFinish,
   paymentResult,
+  errorMessage,
 }) {
   if (!open) return null;
 
@@ -1716,9 +1734,11 @@ function PaymentPanel({
               <AlertCircle size={28} strokeWidth={2.25} />
             </span>
             <h2 id="sb-panel-heading" className="sb-panel__title">
-              Paiement Échoué
+              {errorMessage ? "Commande non envoyée" : "Paiement Échoué"}
             </h2>
-            <p className="sb-result__thanks">Le paiement n'a pas pu être finalisé. Vous pouvez réessayer.</p>
+            <p className="sb-result__thanks">
+              {errorMessage || "Le paiement n'a pas pu être finalisé. Vous pouvez réessayer."}
+            </p>
             <div className="sb-panel__actions">
               <button className="sb-btn sb-btn--primary sb-btn--full" onClick={onBackToMethod}>
                 Réessayer
@@ -4122,6 +4142,7 @@ function SmellsByBorboneMenu() {
   const [bill, setBill] = useState({});
   const [panelOpen, setPanelOpen] = useState(false);
   const [paymentStep, setPaymentStep] = useState("bill");
+  const [orderError, setOrderError] = useState(null); // error code when an order is refused
   const [tableNumber, setTableNumber] = useState(null);
   const [customerName, setCustomerName] = useState("");
 
@@ -4808,6 +4829,7 @@ function SmellsByBorboneMenu() {
   const selectPaymentMethod = useCallback(
     async (method) => {
       primeAudio(); // unlock the chime now (user gesture) so it can play when ready
+      setOrderError(null);
       setPaymentStep("processing");
       try {
         // Pay at the counter: no online payment — just send the order to staff.
@@ -4819,11 +4841,12 @@ function SmellsByBorboneMenu() {
             customerName,
             customerToken: customerTokenRef.current,
           });
-          if (order) {
+          if (order?.orderId) {
             trackOrder(order.orderId, order.ref);
             setPaymentResult({ confirmationId: order.ref, amount: billTotal, table: tableNumber, counter: true });
             setPaymentStep("success");
           } else {
+            setOrderError(order?.error || "server_error");
             setPaymentStep("failure");
           }
           return;
@@ -4841,7 +4864,7 @@ function SmellsByBorboneMenu() {
             customerName,
             customerToken: customerTokenRef.current,
           });
-          if (order) trackOrder(order.orderId, order.ref);
+          if (order?.orderId) trackOrder(order.orderId, order.ref);
           setPaymentResult({
             confirmationId: order?.ref || result.confirmationId,
             amount: billTotal,
@@ -5046,6 +5069,7 @@ function SmellsByBorboneMenu() {
         onBackToBill={backToBill}
         onFinish={finishAndReset}
         paymentResult={paymentResult}
+        errorMessage={orderError ? orderErrorMessage(orderError) : null}
       />
 
       <AdminPanel

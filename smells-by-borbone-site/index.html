@@ -3,6 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Security: Content-Security-Policy locks down what the page may load.
+         scripts: only our own bundle (no inline/eval). styles: self + inline
+         (the app injects <style>). images/fonts: self + data URIs. network
+         (connect): only our Supabase backend. frames: only the Google Maps
+         embed. Everything else is denied. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; base-uri 'self'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://ajpvlyizqzgtjlroeqdf.supabase.co; frame-src https://maps.google.com https://www.google.com; worker-src 'self'; manifest-src 'self'; form-action 'self'; upgrade-insecure-requests"
+    />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
     <meta name="theme-color" content="#182B55" />

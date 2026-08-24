@@ -5129,12 +5129,14 @@ const SB_TICKET_CSS = `
   .foot { margin-top: 10px; font-size: 11px; }
 `;
 function openTicket(title, inner) {
+  // No inline <script> here on purpose: the popup inherits the page's strict
+  // Content-Security-Policy, which blocks inline scripts. We trigger printing
+  // from this (opener) window instead.
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
     <style>${SB_TICKET_CSS}</style></head><body>
     <div class="c brand">SmellS by Borbone</div>
     <div class="c addr">${escapeHtml(contactInfo.address)}</div>
     ${inner}
-    <script>window.onload=function(){window.print();};</script>
   </body></html>`;
   const w = window.open("", "_blank", "width=380,height=640");
   if (!w) {
@@ -5144,6 +5146,18 @@ function openTicket(title, inner) {
   w.document.open();
   w.document.write(html);
   w.document.close();
+  const doPrint = () => {
+    try {
+      w.focus();
+      w.print();
+    } catch {
+      /* user can still print manually from the popup */
+    }
+  };
+  // Print once the popup has rendered; onload covers most browsers, the timeout
+  // is a fallback for those where document.write doesn't refire load.
+  w.onload = doPrint;
+  setTimeout(doPrint, 400);
 }
 
 const ticketMoney = (tnd) => Number(tnd || 0).toFixed(3);

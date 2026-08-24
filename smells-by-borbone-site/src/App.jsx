@@ -32,7 +32,6 @@ import {
   LOGO_SRC, PHOTO_STOREFRONT, PHOTO_LATTE_ART, PHOTO_CAT_CHAIR, PHOTO_TIRAMISU,
   PHOTO_ICED_DUO, PHOTO_CARAMEL, PHOTO_OREO, PHOTO_REVIEW_LOAI, PHOTO_REVIEW_ONS,
   PHOTO_REVIEW_KHAYREDDINE, PHOTO_REVIEW_PATRIZIA, PHOTO_REVIEW_ROCHDY, HERO_BG,
-  SIG_LATTE, SIG_ICE, SIG_SMOOTHIE, SIG_PASTRY,
 } from "./assets/images.js";
 import GlobalStyles from "./GlobalStyles.jsx";
 import { primeAudio, playChime, playAlarm, stopAlarm, isIOS, vibrateAlert } from "./lib/audio.js";
@@ -829,43 +828,6 @@ function Header({
 }
 
 /* --------------------------------- Hero ------------------------------------ */
-
-const SIGNATURES = [
-  { img: SIG_LATTE, name: "Latte Macchiato", desc: "Caramel, tiramisù, speculoos…", price: "dès 6,000 DT" },
-  { img: SIG_ICE, name: "Ice Latte", desc: "Notre café glacé signature", price: "dès 6,500 DT" },
-  { img: SIG_SMOOTHIE, name: "Smoothies", desc: "100% fruits frais", price: "dès 7,500 DT" },
-  { img: SIG_PASTRY, name: "Pâtisseries maison", desc: "Préparées chaque jour", price: "" },
-];
-function SignatureShowcase({ onDiscover }) {
-  return (
-    <section className="sb-sig" aria-label="Nos signatures">
-      <Reveal className="sb-sig__intro">
-        <span className="sb-eyebrow">
-          <span className="sb-tricolor-dash" aria-hidden="true" /> Nos Favoris
-        </span>
-        <h2 className="sb-section-title">Les incontournables</h2>
-        <p className="sb-section-subtitle">Une sélection de nos boissons et douceurs signatures.</p>
-      </Reveal>
-      <div className="sb-sig__grid">
-        {SIGNATURES.map((s, i) => (
-          <Reveal as="article" className="sb-sig__card" delay={i * 80} key={s.name}>
-            <div className="sb-sig__img" style={{ backgroundImage: `url(${s.img})` }} role="img" aria-label={s.name} />
-            <div className="sb-sig__body">
-              <h3 className="sb-sig__name">{s.name}</h3>
-              <p className="sb-sig__desc">{s.desc}</p>
-              {s.price && <span className="sb-sig__price">{s.price}</span>}
-            </div>
-          </Reveal>
-        ))}
-      </div>
-      <div className="sb-sig__cta">
-        <button className="sb-btn sb-btn--primary" onClick={onDiscover}>
-          Voir toute la carte <ArrowRight size={16} />
-        </button>
-      </div>
-    </section>
-  );
-}
 
 function Hero({ onPrimaryCta, onSecondaryCta }) {
   const [scrollY, setScrollY] = useState(0);
@@ -4326,7 +4288,6 @@ function SmellsByBorboneMenu() {
       />
       <main id="main">
         <Hero onPrimaryCta={scrollToMenu} onSecondaryCta={scrollToContact} />
-        <SignatureShowcase onDiscover={scrollToMenu} />
         <MenuSection
           items={menuItems}
           activeCategory={activeCategory}

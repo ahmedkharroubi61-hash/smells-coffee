@@ -1398,7 +1398,7 @@ function Footer() {
         <p className="sb-footer__credit">
           Conçu par{" "}
           <a
-            href="https://www.instagram.com/ahmed_kharroubi_/"
+            href="https://www.linkedin.com/in/ahmed-kharroubi-8a883b42a"
             target="_blank"
             rel="noopener noreferrer"
           >

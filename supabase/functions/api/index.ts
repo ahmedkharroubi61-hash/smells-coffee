@@ -196,11 +196,13 @@ async function createOrder(o: {
 }
 
 // Active orders (everything the kitchen still needs to act on), oldest first.
+// Excludes finished ("done") and voided ("cancelled") orders.
 async function getActiveOrders() {
   const { data, error } = await supabase
     .from("orders")
     .select("*")
     .neq("status", "done")
+    .neq("status", "cancelled")
     .order("created_at", { ascending: true });
   if (error) throw error;
   return data ?? [];
@@ -1200,12 +1202,23 @@ app.patch("/orders/:id", requireStaffOrAdmin, async (c) => {
   try {
     const body = await c.req.json().catch(() => ({}));
     const status = body?.status;
-    if (!["new", "preparing", "ready", "done"].includes(status)) {
+    if (!["new", "preparing", "ready", "done", "cancelled"].includes(status)) {
       return c.json({ error: "invalid_status" }, 400);
     }
     const orderId = c.req.param("id");
     const staffId = c.get("staffId") as string | undefined;
     const order = await getOrderById(orderId);
+
+    // Cancelling voids the order: NO sale credit, NO ready-push. If it had
+    // already been made (consumed), the ingredients go back to inventory.
+    // Idempotent — a second cancel won't restock twice.
+    if (status === "cancelled") {
+      if (order && order.status !== "cancelled") {
+        if (order.consumed) await restockSuppliesForOrder(order);
+        await updateOrderStatus(orderId, "cancelled");
+      }
+      return c.json({ ok: true });
+    }
 
     // Draw ingredients down from inventory the first time the drink is made
     // (reaches "ready" or "done"). consumeSuppliesForOrder is a no-op if already done.

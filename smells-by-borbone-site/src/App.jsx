@@ -4177,6 +4177,7 @@ function SmellsByBorboneMenu() {
         if (res.status === 404) return clear();
         if (!res.ok) return;
         const { status } = await res.json();
+        if (status === "cancelled") return clear(); // order voided — stop tracking
         if (status === "ready" || status === "done") {
           // In-page banner always fires (independent of OS notification settings).
           setReadyBanner({ ref: trackedOrder.ref });
@@ -5307,7 +5308,7 @@ function StaffOrderCard({ order, onAdvance }) {
           🖨
         </button>
         {order.status !== "ready" && (
-          <button className="sb-staff-btn sb-staff-btn--ghost" onClick={() => onAdvance(order.id, "done")}>
+          <button className="sb-staff-btn sb-staff-btn--ghost" onClick={() => onAdvance(order.id, "cancelled")}>
             Annuler
           </button>
         )}
@@ -5616,8 +5617,11 @@ function StaffView() {
   }, [token, tab, loadHistory]);
 
   const advance = async (id, status) => {
+    // "done" (served) and "cancelled" (voided) both leave the active queue.
     setOrders((prev) =>
-      status === "done" ? prev.filter((o) => o.id !== id) : prev.map((o) => (o.id === id ? { ...o, status } : o))
+      status === "done" || status === "cancelled"
+        ? prev.filter((o) => o.id !== id)
+        : prev.map((o) => (o.id === id ? { ...o, status } : o))
     );
     try {
       await fetch(`${PAYMENT_API_BASE_URL}/api/orders/${id}`, {

@@ -301,12 +301,10 @@ const shopConfig = {
 // here to read out of dev tools. Logging in returns a short-lived token that
 // menu edits are sent with; see authenticateAdmin() in the App component.
 
-// See the big comment at the top of the file: this sandboxed artifact can't
-// hold a real payment provider secret key, so payments are simulated here.
-// Leave DEMO_MODE = true until Flouci is configured on the backend; flip it to
-// false once the Flouci secrets are set (see supabase/README.md). Menu
-// persistence below works regardless of this flag.
-const DEMO_MODE = true;
+// Online card payment (Flouci) is live only when the backend has the Flouci
+// secrets set — the frontend asks /config for `paymentsEnabled` and shows the
+// online option only then. Until then, customers use "Payer au comptoir",
+// which is fully functional. There is no simulated/demo payment path anymore.
 // Supabase Edge Function base. The calls below add "/api/..." and "api" is the
 // function name, so this URL must NOT end in /api.
 // Backend base URL. `npm run dev` picks up VITE_API_BASE_URL from .env.development
@@ -431,17 +429,8 @@ function slugify(name, existingIds) {
 // reviewed end to end without a live backend. Never treat frontend-only
 // "success" as real payment confirmation in production — see
 // payment-backend/README.md for the real, server-verified flow.
-async function simulatePayment({ amount, tableNumber, method }) {
-  await new Promise((resolve) => setTimeout(resolve, 1500 + Math.random() * 700));
-  const succeeded = Math.random() > 0.12;
-  if (succeeded) {
-    return { ok: true, confirmationId: `SM-${Math.floor(1000 + Math.random() * 9000)}` };
-  }
-  return { ok: false, error: "payment_declined" };
-}
-
-// PRODUCTION INTEGRATION POINT — real flow, not executed while DEMO_MODE is
-// true. This matches payment-backend/server.js, built for Flouci:
+// Real Flouci payment flow (runs only when the online option is shown, i.e.
+// payments are configured on the backend):
 //   1. Ask the backend to create a payment from *server-verified* prices
 //      (never the total computed in this browser tab).
 //   2. Flouci is redirect-based, not an embedded card form — the backend
@@ -1525,6 +1514,7 @@ function PaymentPanel({
   onFinish,
   paymentResult,
   errorMessage,
+  paymentsEnabled,
 }) {
   if (!open) return null;
 
@@ -1658,9 +1648,11 @@ function PaymentPanel({
             </div>
 
             <div className="sb-method-list">
-              <button className="sb-method-btn" onClick={() => onSelectMethod("card")}>
-                <CreditCard size={20} strokeWidth={1.75} aria-hidden="true" /> Payer en ligne (carte)
-              </button>
+              {paymentsEnabled && (
+                <button className="sb-method-btn" onClick={() => onSelectMethod("card")}>
+                  <CreditCard size={20} strokeWidth={1.75} aria-hidden="true" /> Payer en ligne (carte)
+                </button>
+              )}
               <button className="sb-method-btn" onClick={() => onSelectMethod("counter")}>
                 <Receipt size={20} strokeWidth={1.75} aria-hidden="true" /> Payer au comptoir
               </button>
@@ -4143,6 +4135,20 @@ function SmellsByBorboneMenu() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [paymentStep, setPaymentStep] = useState("bill");
   const [orderError, setOrderError] = useState(null); // error code when an order is refused
+  const [paymentsEnabled, setPaymentsEnabled] = useState(false); // online card option, from backend config
+
+  // Ask the backend whether online card payment (Flouci) is configured. If not,
+  // the payment panel shows only "Payer au comptoir".
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${PAYMENT_API_BASE_URL}/api/config`);
+        if (res.ok) setPaymentsEnabled(!!(await res.json()).paymentsEnabled);
+      } catch {
+        /* leave online payment off if we can't reach config */
+      }
+    })();
+  }, []);
   const [tableNumber, setTableNumber] = useState(null);
   const [customerName, setCustomerName] = useState("");
 
@@ -4325,15 +4331,13 @@ function SmellsByBorboneMenu() {
   }, []);
 
   // If the customer is landing back on the site after paying on Flouci's
-  // hosted page (DEMO_MODE = false only — this never happens in the demo),
-  // pick the payment back up instead of dropping them back at the hero.
+  // hosted page, pick the payment back up instead of dropping them at the hero.
   // "order" and "status" are exactly what payment-backend/server.js put in
   // success_link/fail_link when it created the payment — but "status" here
   // is just a hint for a faster UI response; the real answer always comes
   // from asking the backend, which independently re-verifies with Flouci
   // rather than trusting a value anyone could edit in the URL.
   useEffect(() => {
-    if (DEMO_MODE) return;
     const params = new URLSearchParams(window.location.search);
     const orderId = params.get("order");
     if (!orderId) return;
@@ -4852,9 +4856,7 @@ function SmellsByBorboneMenu() {
           return;
         }
 
-        const result = DEMO_MODE
-          ? await simulatePayment({ amount: billTotal, tableNumber, method })
-          : await processRealPayment({ bill, tableNumber, method });
+        const result = await processRealPayment({ bill, tableNumber, method });
         if (result.redirecting) return; // real Flouci: leaving the page, order is placed on return
         if (result.ok) {
           const order = await submitOrder({
@@ -5070,6 +5072,7 @@ function SmellsByBorboneMenu() {
         onFinish={finishAndReset}
         paymentResult={paymentResult}
         errorMessage={orderError ? orderErrorMessage(orderError) : null}
+        paymentsEnabled={paymentsEnabled}
       />
 
       <AdminPanel

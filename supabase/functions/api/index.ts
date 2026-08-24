@@ -1561,7 +1561,8 @@ app.get("/customer/orders", requireCustomer, async (c) => {
 });
 
 // Public front-end config (the Google client id is public by design).
-app.get("/config", (c) => c.json({ googleClientId: env("GOOGLE_CLIENT_ID") ?? null }));
+app.get("/config", (c) =>
+  c.json({ googleClientId: env("GOOGLE_CLIENT_ID") ?? null, paymentsEnabled: flouciConfigured }));
 
 // Marketing: join the email list (public). Manager: list them.
 app.post("/subscribe", rateLimit({ windowMs: 60_000, max: 15 }), async (c) => {

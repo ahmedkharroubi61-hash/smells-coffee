@@ -1181,7 +1181,7 @@ function About() {
     <section id="about" className="sb-about" aria-labelledby="sb-about-heading">
       <SteamCurves className="sb-about__steam" />
       <Reveal className="sb-about__photo">
-        <img src={PHOTO_STOREFRONT} alt="La devanture de SmellS à Sousse" />
+        <img src={PHOTO_STOREFRONT} alt="L'ambiance intérieure de SmellS en soirée, à Sousse" />
       </Reveal>
       <Reveal className="sb-about__text" delay={100}>
         <span className="sb-eyebrow">

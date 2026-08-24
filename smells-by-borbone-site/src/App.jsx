@@ -4369,7 +4369,11 @@ function SmellsByBorboneMenu() {
   const billCount = getBillCount(bill);
 
   useEffect(() => {
-    document.title = "SmellS by Borbone | Carte du Café Italien";
+    // Keep the manager app's own tab title (admin.html); only the public site
+    // sets this SEO title.
+    if (!/admin(\.html)?$/.test(window.location.pathname)) {
+      document.title = "SmellS by Borbone | Carte du Café Italien";
+    }
     let meta = document.querySelector('meta[name="description"]');
     if (!meta) {
       meta = document.createElement("meta");
@@ -5944,19 +5948,35 @@ function StaffView() {
   );
 }
 
-// Route between the public menu site and the staff order screen (#staff).
+// Route between the three installable apps:
+//   /staff.html (or #staff)  → barista order screen
+//   /admin.html              → manager console (opens Espace Gérant on load)
+//   everything else          → customer site
 export default function App() {
+  const path = typeof window !== "undefined" ? window.location.pathname : "/";
+  const isStaffEntry = /(^|\/)staff(\.html)?$/.test(path);
+  const isAdminEntry = /(^|\/)admin(\.html)?$/.test(path);
+
   const [isStaff, setIsStaff] = useState(
-    () => typeof window !== "undefined" && window.location.hash === "#staff"
+    () => typeof window !== "undefined" && (isStaffEntry || window.location.hash === "#staff")
   );
   useEffect(() => {
-    const onHash = () => setIsStaff(window.location.hash === "#staff");
+    const onHash = () => setIsStaff(isStaffEntry || window.location.hash === "#staff");
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
-  }, []);
+  }, [isStaffEntry]);
+
   // Register the service worker up front so push is ready when an order is placed.
   useEffect(() => {
     ensureServiceWorker();
   }, []);
+
+  // The manager app opens the Espace Gérant straight away.
+  useEffect(() => {
+    if (isAdminEntry && window.location.hash !== "#admin") {
+      window.location.hash = "#admin";
+    }
+  }, [isAdminEntry]);
+
   return isStaff ? <StaffView /> : <SmellsByBorboneMenu />;
 }

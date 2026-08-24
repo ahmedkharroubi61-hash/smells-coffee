@@ -1,0 +1,17 @@
+{
+  "name": "SmellS Staff",
+  "short_name": "SmellS Staff",
+  "description": "Écran commandes du personnel.",
+  "start_url": "/staff.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f1e7",
+  "theme_color": "#182b55",
+  "lang": "fr",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/favicon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/favicon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

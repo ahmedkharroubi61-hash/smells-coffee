@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 
 /* ==========================================================================
-   SmellS by Borbone — Digital Menu + In-Shop Bill & Payment
+   SmellS — Digital Menu + In-Shop Bill & Payment
 
    This is a DIGITAL MENU + IN-SHOP BILL, not online ordering. Customers are
    physically in the café: they browse, tap "Aggiungi" on what they've had,
@@ -892,13 +892,13 @@ function Header({
         <a
           href="#hero"
           className="sb-header__mark"
-          aria-label="SmellS by Borbone — retour à l'accueil"
+          aria-label="SmellS — retour à l'accueil"
           onClick={(e) => {
             e.preventDefault();
             document.getElementById("hero")?.scrollIntoView({ behavior: "smooth", block: "start" });
           }}
         >
-          <img src={LOGO_SRC} alt="SmellS by Borbone" width="44" height="44" />
+          <img src={LOGO_SRC} alt="SmellS" width="44" height="44" />
         </a>
 
         <nav className="sb-nav" aria-label="Navigation principale">
@@ -982,7 +982,7 @@ function Hero({ onPrimaryCta, onSecondaryCta }) {
       <SteamCurves className="sb-hero__steam sb-hero__steam--right" />
 
       <div className="sb-hero__content">
-        <img src={LOGO_SRC} alt="SmellS by Borbone — logo" className="sb-hero__logo" style={logoStyle} width="220" height="220" />
+        <img src={LOGO_SRC} alt="SmellS — logo" className="sb-hero__logo" style={logoStyle} width="220" height="220" />
         <h1 className="sb-hero__title">Le vrai plaisir du café italien.</h1>
         <p className="sb-hero__subtitle">Découvrez notre sélection de cafés, petits-déjeuners et spécialités italiennes.</p>
         <div className="sb-hero__actions">
@@ -1225,7 +1225,7 @@ function Gallery() {
 
       <div className="sb-gallery__grid">
         <Reveal as="figure" className="sb-gallery__item sb-gallery__item--tall">
-          <img src={PHOTO_LATTE_ART} alt="Latte art signature chez SmellS by Borbone" loading="lazy" />
+          <img src={PHOTO_LATTE_ART} alt="Latte art signature chez SmellS" loading="lazy" />
         </Reveal>
         <Reveal as="figure" className="sb-gallery__item" delay={60}>
           <img src={PHOTO_CAT_CHAIR} alt="Coin salon feutré du café, avec son chat maison" loading="lazy" />
@@ -1234,7 +1234,7 @@ function Gallery() {
           <img src={PHOTO_TIRAMISU} alt="Tiramisù et café servis en terrasse, lumière d'après-midi" loading="lazy" />
         </Reveal>
         <Reveal as="figure" className="sb-gallery__item sb-gallery__item--tall" delay={180}>
-          <img src={PHOTO_ICED_DUO} alt="Deux boissons glacées signature de SmellS by Borbone" loading="lazy" />
+          <img src={PHOTO_ICED_DUO} alt="Deux boissons glacées signature de SmellS" loading="lazy" />
         </Reveal>
         <Reveal as="figure" className="sb-gallery__item" delay={240}>
           <img src={PHOTO_CARAMEL} alt="Boisson glacée au caramel et à la chantilly" loading="lazy" />
@@ -1302,7 +1302,7 @@ function About() {
     <section id="about" className="sb-about" aria-labelledby="sb-about-heading">
       <SteamCurves className="sb-about__steam" />
       <Reveal className="sb-about__photo">
-        <img src={PHOTO_STOREFRONT} alt="La devanture de SmellS by Borbone à Sousse" />
+        <img src={PHOTO_STOREFRONT} alt="La devanture de SmellS à Sousse" />
       </Reveal>
       <Reveal className="sb-about__text" delay={100}>
         <span className="sb-eyebrow">
@@ -1312,7 +1312,7 @@ function About() {
           L'art du véritable café italien
         </h2>
         <p className="sb-about__body">
-          SmellS by Borbone est né de la passion pour le véritable café italien. Un lieu où chaque espresso raconte une
+          SmellS est né de la passion pour le véritable café italien. Un lieu où chaque espresso raconte une
           histoire de tradition, de qualité et de plaisir.
         </p>
       </Reveal>
@@ -1360,7 +1360,7 @@ function Contact() {
       <Reveal className="sb-contact__map" delay={170}>
         <iframe
           src={contactInfo.mapEmbedUrl}
-          title="Localisation de SmellS by Borbone sur la carte"
+          title="Localisation de SmellS sur la carte"
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
           allowFullScreen
@@ -1384,7 +1384,7 @@ function Footer() {
       <div className="sb-tricolor-thread" aria-hidden="true" />
       <div className="sb-footer__inner">
         <img src={LOGO_SRC} alt="" width="56" height="56" className="sb-footer__logo" />
-        <p className="sb-footer__brand">SmellS by Borbone</p>
+        <p className="sb-footer__brand">SmellS</p>
         <p className="sb-footer__tagline">Le plaisir du véritable café italien.</p>
         <div className="sb-footer__social">
           <a href={contactInfo.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram">
@@ -1394,7 +1394,7 @@ function Footer() {
             <Facebook size={18} />
           </a>
         </div>
-        <p className="sb-footer__copyright">© 2026 SmellS by Borbone. Tous droits réservés.</p>
+        <p className="sb-footer__copyright">© 2026 SmellS. Tous droits réservés.</p>
         <p className="sb-footer__credit">
           Conçu par{" "}
           <a
@@ -1692,7 +1692,7 @@ function PaymentPanel({
             <p className="sb-result__thanks">
               {paymentResult.counter
                 ? "Votre commande est en préparation. Présentez ce numéro au comptoir pour régler."
-                : "Merci d'avoir choisi SmellS by Borbone."}
+                : "Merci d'avoir choisi SmellS."}
             </p>
             <NotifyOptIn />
             <div className="sb-result__details">
@@ -3507,7 +3507,7 @@ function IntroOverlay({ onFinish }) {
       className={`sb-intro ${exiting ? "sb-intro--exiting" : ""}`}
       role="button"
       tabIndex={0}
-      aria-label="SmellS by Borbone — défilez vers le bas pour continuer vers le site"
+      aria-label="SmellS — défilez vers le bas pour continuer vers le site"
       onClick={skip}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -3518,7 +3518,7 @@ function IntroOverlay({ onFinish }) {
     >
       <SteamCurves className="sb-intro__steam" />
       <div className="sb-intro__content">
-        <img src={LOGO_SRC} alt="SmellS by Borbone" className="sb-intro__logo" width="150" height="150" />
+        <img src={LOGO_SRC} alt="SmellS" className="sb-intro__logo" width="150" height="150" />
         <span className="sb-intro__thread" aria-hidden="true" />
         <p className="sb-intro__tagline">Le vrai plaisir du café italien.</p>
       </div>
@@ -4231,7 +4231,7 @@ function SmellsByBorboneMenu() {
           // subscribed to push (the server-sent push would otherwise duplicate it).
           if ("Notification" in window && Notification.permission === "granted" && !sbPushActive) {
             try {
-              new Notification("SmellS by Borbone ☕", {
+              new Notification("SmellS ☕", {
                 body: `Votre commande #${trackedOrder.ref} est prête — à récupérer au comptoir !`,
                 icon: "/favicon.png",
                 tag: `order-${trackedOrder.orderId}`,
@@ -4385,7 +4385,7 @@ function SmellsByBorboneMenu() {
     // Keep the manager app's own tab title (admin.html); only the public site
     // sets this SEO title.
     if (!/admin(\.html)?$/.test(window.location.pathname)) {
-      document.title = "SmellS by Borbone | Carte du Café Italien";
+      document.title = "SmellS | Carte du Café Italien";
     }
     let meta = document.querySelector('meta[name="description"]');
     if (!meta) {
@@ -4395,7 +4395,7 @@ function SmellsByBorboneMenu() {
     }
     meta.setAttribute(
       "content",
-      "La carte digitale de SmellS by Borbone : espresso, cappuccino, petit-déjeuner, desserts et spécialités italiennes, dans une atmosphère élégante et authentique."
+      "La carte digitale de SmellS : espresso, cappuccino, petit-déjeuner, desserts et spécialités italiennes, dans une atmosphère élégante et authentique."
     );
   }, []);
 
@@ -5179,7 +5179,7 @@ function openTicket(title, inner) {
   // from this (opener) window instead.
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
     <style>${SB_TICKET_CSS}</style></head><body>
-    <div class="c brand">SmellS by Borbone</div>
+    <div class="c brand">SmellS</div>
     <div class="c addr">${escapeHtml(contactInfo.address)}</div>
     ${inner}
   </body></html>`;
@@ -5269,7 +5269,7 @@ function printShiftReport(report) {
         ? `<hr><div class="c" style="font-size:10px;margin-bottom:4px">DÉTAIL PAR PRODUIT</div><table>${breakdownRows(report.breakdown)}</table>`
         : ""
     }
-    <div class="foot c">SmellS by Borbone · Clôture</div>`;
+    <div class="foot c">SmellS · Clôture</div>`;
   openTicket(`Clôture ${report.staff_name || ""}`.trim(), inner);
 }
 
@@ -5310,7 +5310,7 @@ function printDayClose(reports, dateLabel) {
         ? `<hr><div class="c" style="font-size:10px;margin-bottom:4px">DÉTAIL PAR PRODUIT</div><table>${breakdownRows(combined)}</table>`
         : ""
     }
-    <div class="foot c">SmellS by Borbone · Clôture journée</div>`;
+    <div class="foot c">SmellS · Clôture journée</div>`;
   openTicket(`Clôture journée ${dateLabel}`, inner);
 }
 

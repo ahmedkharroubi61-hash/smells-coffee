@@ -1,4 +1,4 @@
-// SmellS by Borbone — backend, as a single Supabase Edge Function (Deno).
+// SmellS — backend, as a single Supabase Edge Function (Deno).
 //
 // This replaces the old Express server. Two jobs live here:
 //
@@ -628,7 +628,7 @@ async function sendOrderReadyPush(order: any) {
     .eq("order_id", order.id);
   if (!subs?.length) return;
   const payload = JSON.stringify({
-    title: "SmellS by Borbone ☕",
+    title: "SmellS ☕",
     body: `Votre commande #${order.ref} est prête ! À récupérer au comptoir.`,
     ref: order.ref,
   });

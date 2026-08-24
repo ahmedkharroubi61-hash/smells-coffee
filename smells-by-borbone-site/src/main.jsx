@@ -18,7 +18,7 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, info) {
-    console.error("SmellS by Borbone crashed:", error, info?.componentStack);
+    console.error("SmellS crashed:", error, info?.componentStack);
   }
 
   render() {

@@ -1876,6 +1876,97 @@ function IntroOverlay({ onFinish }) {
 
 /* ----------------------------------- App -------------------------------------- */
 
+// Standalone boutique page (its own URL: /boutique.html) — the e-market lives
+// here instead of as a section on the homepage.
+function BoutiquePage() {
+  const [products, setProducts] = useState([]);
+  const [cart, setCart] = useState({});
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+
+  useEffect(() => {
+    document.title = "SmellS · Boutique";
+    (async () => {
+      try {
+        const res = await fetch(`${PAYMENT_API_BASE_URL}/api/boutique/products`);
+        if (res.ok) setProducts((await res.json()).products || []);
+      } catch {
+        /* ignore — boutique just shows empty */
+      }
+    })();
+  }, []);
+
+  const add = useCallback((id) => setCart((p) => ({ ...p, [id]: (p[id] || 0) + 1 })), []);
+  const dec = useCallback((id) => {
+    setCart((p) => {
+      const n = (p[id] || 0) - 1;
+      if (n <= 0) {
+        const { [id]: _omit, ...rest } = p;
+        return rest;
+      }
+      return { ...p, [id]: n };
+    });
+  }, []);
+  const place = useCallback(
+    async ({ name, phone, fulfillment, address }) => {
+      const items = Object.entries(cart).map(([id, quantity]) => ({ id, quantity }));
+      try {
+        const res = await fetch(`${PAYMENT_API_BASE_URL}/api/boutique/order`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items, fulfillment, name, phone, address }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          setCart({});
+          return { ok: true, ref: data.ref };
+        }
+        return { ok: false, error: data?.error };
+      } catch {
+        return { ok: false, error: "network" };
+      }
+    },
+    [cart]
+  );
+
+  return (
+    <div className="sb-root">
+      <GlobalStyles />
+      <header className="sb-header">
+        <div className="sb-header__inner">
+          <a href="/" className="sb-header__mark" aria-label="SmellS — retour à l'accueil">
+            <img src={LOGO_SRC} alt="SmellS" width="44" height="44" />
+          </a>
+          <a
+            href="/"
+            className="sb-nav__link"
+            style={{ display: "inline-flex", opacity: 1, textDecoration: "none" }}
+          >
+            ← Retour au café
+          </a>
+        </div>
+      </header>
+      <main id="main">
+        <BoutiqueSection
+          products={products}
+          cart={cart}
+          onAdd={add}
+          onInc={add}
+          onDec={dec}
+          onOpenCart={() => setCheckoutOpen(true)}
+        />
+      </main>
+      <Footer />
+      <BoutiqueCheckout
+        open={checkoutOpen}
+        cart={cart}
+        products={products}
+        onClose={() => setCheckoutOpen(false)}
+        onPlace={place}
+      />
+    </div>
+  );
+}
+
 function SmellsByBorboneMenu() {
   const [activeCategory, setActiveCategory] = useState(categories[0].id);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -1992,55 +2083,6 @@ function SmellsByBorboneMenu() {
     };
   }, [trackedOrder]);
 
-  // --- Boutique (e-market) ---
-  const [boutiqueProducts, setBoutiqueProducts] = useState([]);
-  const [boutiqueCart, setBoutiqueCart] = useState({});
-  const [boutiqueOpen, setBoutiqueOpen] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`${PAYMENT_API_BASE_URL}/api/boutique/products`);
-        if (res.ok) setBoutiqueProducts((await res.json()).products || []);
-      } catch {
-        /* ignore — boutique just shows empty */
-      }
-    })();
-  }, []);
-
-  const addBoutique = useCallback((id) => setBoutiqueCart((p) => ({ ...p, [id]: (p[id] || 0) + 1 })), []);
-  const decBoutique = useCallback((id) => {
-    setBoutiqueCart((p) => {
-      const n = (p[id] || 0) - 1;
-      if (n <= 0) {
-        const { [id]: _omit, ...rest } = p;
-        return rest;
-      }
-      return { ...p, [id]: n };
-    });
-  }, []);
-
-  const placeBoutiqueOrder = useCallback(
-    async ({ name, phone, fulfillment, address }) => {
-      const items = Object.entries(boutiqueCart).map(([id, quantity]) => ({ id, quantity }));
-      try {
-        const res = await fetch(`${PAYMENT_API_BASE_URL}/api/boutique/order`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ items, fulfillment, name, phone, address }),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok) {
-          setBoutiqueCart({});
-          return { ok: true, ref: data.ref };
-        }
-        return { ok: false, error: data?.error };
-      } catch {
-        return { ok: false, error: "network" };
-      }
-    },
-    [boutiqueCart]
-  );
   const [paymentResult, setPaymentResult] = useState(null);
   const [detailItemId, setDetailItemId] = useState(null);
   const panelRef = useRef(null);
@@ -2643,14 +2685,14 @@ function SmellsByBorboneMenu() {
   // panel, item detail sheet, or intro is open
   useEffect(() => {
     const shouldLock =
-      mobileOpen || panelOpen || adminOpen || promoOpen || boutiqueOpen || showIntro || detailItemId;
+      mobileOpen || panelOpen || adminOpen || promoOpen || showIntro || detailItemId;
     document.documentElement.style.overflow = shouldLock ? "hidden" : "";
     document.body.style.overflow = shouldLock ? "hidden" : "";
     return () => {
       document.documentElement.style.overflow = "";
       document.body.style.overflow = "";
     };
-  }, [mobileOpen, panelOpen, adminOpen, promoOpen, boutiqueOpen, showIntro, detailItemId]);
+  }, [mobileOpen, panelOpen, adminOpen, promoOpen, showIntro, detailItemId]);
 
   // Escape closes the payment panel; focus lands inside it on open
   useEffect(() => {
@@ -2677,6 +2719,10 @@ function SmellsByBorboneMenu() {
   }, [detailItemId, closeItemDetail]);
 
   const handleNavClick = useCallback((link) => {
+    if (link.href) {
+      window.location.href = link.href; // dedicated page (e.g. the boutique)
+      return;
+    }
     if (link.category) setActiveCategory(link.category);
     document.getElementById(link.sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
     setMobileOpen(false);
@@ -2765,28 +2811,12 @@ function SmellsByBorboneMenu() {
           onDecrement={decrementItem}
           onOpenDetail={openItemDetail}
         />
-        <BoutiqueSection
-          products={boutiqueProducts}
-          cart={boutiqueCart}
-          onAdd={addBoutique}
-          onInc={addBoutique}
-          onDec={decBoutique}
-          onOpenCart={() => setBoutiqueOpen(true)}
-        />
         <Gallery />
         <Reviews />
         <About />
         <Contact />
       </main>
       <Footer />
-
-      <BoutiqueCheckout
-        open={boutiqueOpen}
-        cart={boutiqueCart}
-        products={boutiqueProducts}
-        onClose={() => setBoutiqueOpen(false)}
-        onPlace={placeBoutiqueOrder}
-      />
 
       <MobileBillBar count={billCount} total={billTotal} onOpen={openPanel} />
 
@@ -2872,6 +2902,7 @@ export default function App() {
   const path = typeof window !== "undefined" ? window.location.pathname : "/";
   const isStaffEntry = /(^|\/)staff(\.html)?$/.test(path);
   const isAdminEntry = /(^|\/)admin(\.html)?$/.test(path);
+  const isBoutiqueEntry = /(^|\/)boutique(\.html)?$/.test(path);
 
   const [isStaff, setIsStaff] = useState(
     () => typeof window !== "undefined" && (isStaffEntry || window.location.hash === "#staff")
@@ -2894,5 +2925,7 @@ export default function App() {
     }
   }, [isAdminEntry]);
 
-  return isStaff ? <StaffView /> : <SmellsByBorboneMenu />;
+  if (isStaff) return <StaffView />;
+  if (isBoutiqueEntry) return <BoutiquePage />;
+  return <SmellsByBorboneMenu />;
 }

@@ -14,6 +14,7 @@ export default defineConfig({
         main: fileURLToPath(new URL("./index.html", import.meta.url)),
         staff: fileURLToPath(new URL("./staff.html", import.meta.url)),
         admin: fileURLToPath(new URL("./admin.html", import.meta.url)),
+        boutique: fileURLToPath(new URL("./boutique.html", import.meta.url)),
       },
     },
   },

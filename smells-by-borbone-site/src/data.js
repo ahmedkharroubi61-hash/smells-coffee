@@ -203,7 +203,7 @@ export const navLinks = [
   { label: "Iced Coffee", sectionId: "menu", category: "iced-coffee" },
   { label: "Smoothies", sectionId: "menu", category: "smoothies" },
   { label: "Desserts", sectionId: "menu", category: "dessert" },
-  { label: "Boutique", sectionId: "boutique", category: null },
+  { label: "Boutique", href: "/boutique.html", category: null },
   { label: "Contact", sectionId: "contact", category: null },
 ];
 export const NAV_CATEGORY_IDS = navLinks.filter((l) => l.category).map((l) => l.category);

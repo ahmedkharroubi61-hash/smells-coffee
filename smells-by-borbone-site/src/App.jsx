@@ -963,6 +963,9 @@ function Footer() {
             Ahmed Kharroubi
           </a>
         </p>
+        <a href="#admin" className="sb-footer__admin-link">
+          Espace gérant
+        </a>
       </div>
     </footer>
   );

@@ -2534,6 +2534,11 @@ function SmellsByBorboneMenu() {
     return ok ? data.returns || [] : [];
   }, [adminReq]);
 
+  const fetchAnalytics = useCallback(async () => {
+    const { ok, data } = await adminReq("/analytics");
+    return ok ? data.days || [] : [];
+  }, [adminReq]);
+
   const handleAddItem = useCallback(
     (newItemData) => {
       setMenuItems((prev) => {
@@ -2888,6 +2893,7 @@ function SmellsByBorboneMenu() {
         onFetchShiftReports={fetchShiftReports}
         onDeleteShiftReport={deleteShiftReport}
         onFetchReturns={fetchReturns}
+        onFetchAnalytics={fetchAnalytics}
       />
     </div>
   );

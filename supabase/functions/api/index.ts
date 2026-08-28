@@ -1464,6 +1464,24 @@ app.get("/returns", requireAdminToken, async (c) => {
   }
 });
 
+// Manager: daily income (completed, non-returned orders) for the analytics
+// screen. The frontend rolls these up into months.
+app.get("/analytics", requireAdminToken, async (c) => {
+  try {
+    const { data, error } = await supabase.rpc("analytics_daily");
+    if (error) throw error;
+    const days = (data ?? []).map((r: any) => ({
+      date: r.day, // "YYYY-MM-DD"
+      totalMillimes: Number(r.total_millimes ?? 0),
+      ordersCount: Number(r.orders_count ?? 0),
+    }));
+    return c.json({ days });
+  } catch (err) {
+    console.error("analytics error:", err);
+    return c.json({ error: "server_error" }, 500);
+  }
+});
+
 /* ----------------------------------------------------- customer accounts */
 
 app.post("/customer/signup", rateLimit({ windowMs: 60_000, max: 10 }), async (c) => {

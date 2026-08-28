@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Coffee, Lock, Pencil, Plus, Trash2, X } from "lucide-react";
 import { PAYMENT_API_BASE_URL } from "../config.js";
 import { categories } from "../data.js";
-import { formatPrice } from "../lib/format.js";
+import { formatPrice, fmtDT } from "../lib/format.js";
+import { monthlyBreakdown, monthStats, overallMonthlyAverage } from "../lib/analytics.js";
 import { printShiftReport, printDayClose } from "../lib/receipts.js";
 
 function ShiftReportsManager({ onFetch, onDelete, onBack }) {
@@ -874,7 +875,133 @@ function StaffManager({ onFetchStaff, onAddStaff, onDeleteStaff, onBack }) {
   );
 }
 
-export function AdminPanel({ open, onClose, items, onAddItem, onUpdateItem, onDeleteItem, onResetMenu, onAuthenticate, onHasSession, onLogout, onFetchStaff, onAddStaff, onDeleteStaff, onFetchSubscribers, onFetchSupplies, onAddSupply, onUpdateSupply, onDeleteSupply, onFetchBoutiqueProducts, onAddBoutiqueProduct, onUpdateBoutiqueProduct, onDeleteBoutiqueProduct, onFetchBoutiqueOrders, onUpdateBoutiqueOrder, onFetchShiftReports, onDeleteShiftReport, onFetchReturns }) {
+const MONTHS_FR = [
+  "janvier", "février", "mars", "avril", "mai", "juin",
+  "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+];
+const monthLabel = (key) => {
+  const [y, m] = key.split("-");
+  return `${MONTHS_FR[Number(m) - 1]} ${y}`;
+};
+const dayLabel = (iso) =>
+  new Date(iso + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "2-digit" });
+
+// Owner: monthly income analytics — best/worst day of a month, that month's
+// daily average, and how each month stacks up against the others.
+function AnalyticsManager({ onFetch, onBack }) {
+  const [days, setDays] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [sel, setSel] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      const d = (await onFetch()) || [];
+      setDays(d);
+      const months = [...new Set(d.map((x) => x.date.slice(0, 7)))].sort();
+      if (months.length) setSel(months[months.length - 1]);
+      setLoading(false);
+    })();
+  }, [onFetch]);
+
+  const byMonth = monthlyBreakdown(days);
+  const monthKeys = Object.keys(byMonth).sort();
+  const maxTotal = Math.max(1, ...monthKeys.map((k) => byMonth[k].total));
+  const overallAvg = overallMonthlyAverage(byMonth);
+
+  const cur = sel ? byMonth[sel] : null;
+  const { best, worst, avgDay } = monthStats(cur);
+  const delta = cur ? cur.total - overallAvg : 0;
+
+  return (
+    <>
+      <style>{`
+        .sb-an-select { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(24,43,85,.22); background: var(--white-warm); color: var(--ink); font-family: var(--sans); font-size: .95rem; margin: 4px 0 20px; }
+        .sb-an-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+        .sb-an-card { border: 1px solid rgba(24,43,85,.12); border-radius: 12px; padding: 12px 14px; background: #fff; }
+        .sb-an-card--wide { grid-column: 1 / -1; }
+        .sb-an-card__label { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: rgba(24,43,85,.5); margin: 0 0 4px; }
+        .sb-an-card__val { font-family: var(--serif); font-weight: 700; font-size: 1.25rem; color: var(--navy); }
+        .sb-an-card__sub { font-size: .78rem; color: rgba(24,43,85,.55); }
+        .sb-an-best { color: #15803d; } .sb-an-worst { color: #c2410c; }
+        .sb-an-delta--up { color: #15803d; font-weight: 600; } .sb-an-delta--down { color: #c2410c; font-weight: 600; }
+        .sb-an-chart { margin-top: 8px; display: flex; align-items: flex-end; gap: 8px; height: 150px; padding: 10px 4px 0; border-bottom: 1px solid rgba(24,43,85,.12); overflow-x: auto; }
+        .sb-an-bar { flex: 1 0 34px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; cursor: pointer; }
+        .sb-an-bar__fill { width: 100%; max-width: 40px; background: rgba(24,43,85,.25); border-radius: 6px 6px 0 0; transition: background .2s; min-height: 3px; }
+        .sb-an-bar.is-sel .sb-an-bar__fill { background: var(--brass); }
+        .sb-an-bar__lbl { font-size: .62rem; color: rgba(24,43,85,.55); margin-top: 5px; white-space: nowrap; }
+        .sb-an-avgline { font-size: .78rem; color: rgba(24,43,85,.6); margin: 8px 0 0; }
+      `}</style>
+      <button className="sb-btn-ghost sb-admin-staff-link" onClick={onBack}>
+        ← Retour au menu
+      </button>
+      <h2 id="sb-admin-heading" className="sb-panel__title">
+        Statistiques
+      </h2>
+
+      {loading ? (
+        <p className="sb-admin-intro">Chargement…</p>
+      ) : monthKeys.length === 0 ? (
+        <p className="sb-admin-intro">Aucune donnée encore. Les statistiques apparaissent dès les premières commandes servies.</p>
+      ) : (
+        <>
+          <label className="sb-admin-field" style={{ marginBottom: 0 }}>
+            Mois
+            <select className="sb-an-select" value={sel || ""} onChange={(e) => setSel(e.target.value)}>
+              {[...monthKeys].reverse().map((k) => (
+                <option key={k} value={k}>{monthLabel(k)}</option>
+              ))}
+            </select>
+          </label>
+
+          {cur && (
+            <div className="sb-an-grid">
+              <div className="sb-an-card sb-an-card--wide">
+                <p className="sb-an-card__label">Total du mois · {cur.orders} commande(s)</p>
+                <div className="sb-an-card__val">{fmtDT(cur.total)}</div>
+                <span className="sb-an-card__sub">
+                  Moyenne : {fmtDT(avgDay)} / jour ·{" "}
+                  <span className={delta >= 0 ? "sb-an-delta--up" : "sb-an-delta--down"}>
+                    {delta >= 0 ? "▲" : "▼"} {fmtDT(Math.abs(delta))} vs moyenne mensuelle
+                  </span>
+                </span>
+              </div>
+              <div className="sb-an-card">
+                <p className="sb-an-card__label sb-an-best">Meilleur jour</p>
+                <div className="sb-an-card__val">{best ? fmtDT(best.totalMillimes) : "—"}</div>
+                <span className="sb-an-card__sub">{best ? `${dayLabel(best.date)} · ${best.ordersCount} cmd` : ""}</span>
+              </div>
+              <div className="sb-an-card">
+                <p className="sb-an-card__label sb-an-worst">Jour le plus faible</p>
+                <div className="sb-an-card__val">{worst ? fmtDT(worst.totalMillimes) : "—"}</div>
+                <span className="sb-an-card__sub">{worst ? `${dayLabel(worst.date)} · ${worst.ordersCount} cmd` : ""}</span>
+              </div>
+            </div>
+          )}
+
+          <h3 className="sb-admin-group__title" style={{ marginTop: 20 }}>Comparaison mensuelle</h3>
+          <div className="sb-an-chart">
+            {monthKeys.map((k) => (
+              <button
+                key={k}
+                className={`sb-an-bar ${k === sel ? "is-sel" : ""}`}
+                onClick={() => setSel(k)}
+                title={`${monthLabel(k)} — ${fmtDT(byMonth[k].total)}`}
+              >
+                <span className="sb-an-bar__fill" style={{ height: `${(byMonth[k].total / maxTotal) * 100}%` }} />
+                <span className="sb-an-bar__lbl">{MONTHS_FR[Number(k.split("-")[1]) - 1].slice(0, 3)}</span>
+              </button>
+            ))}
+          </div>
+          <p className="sb-an-avgline">
+            Moyenne sur {monthKeys.length} mois : <strong>{fmtDT(overallAvg)}</strong> par mois.
+          </p>
+        </>
+      )}
+    </>
+  );
+}
+
+export function AdminPanel({ open, onClose, items, onAddItem, onUpdateItem, onDeleteItem, onResetMenu, onAuthenticate, onHasSession, onLogout, onFetchStaff, onAddStaff, onDeleteStaff, onFetchSubscribers, onFetchSupplies, onAddSupply, onUpdateSupply, onDeleteSupply, onFetchBoutiqueProducts, onAddBoutiqueProduct, onUpdateBoutiqueProduct, onDeleteBoutiqueProduct, onFetchBoutiqueOrders, onUpdateBoutiqueOrder, onFetchShiftReports, onDeleteShiftReport, onFetchReturns, onFetchAnalytics }) {
   const [unlocked, setUnlocked] = useState(false);
   const [passcodeInput, setPasscodeInput] = useState("");
   const [authError, setAuthError] = useState(false);
@@ -1034,6 +1161,8 @@ export function AdminPanel({ open, onClose, items, onAddItem, onUpdateItem, onDe
           <ShiftReportsManager onFetch={onFetchShiftReports} onDelete={onDeleteShiftReport} onBack={() => setView("list")} />
         ) : view === "returns" ? (
           <ReturnsManager onFetch={onFetchReturns} onBack={() => setView("list")} />
+        ) : view === "analytics" ? (
+          <AnalyticsManager onFetch={onFetchAnalytics} onBack={() => setView("list")} />
         ) : view === "boutique" ? (
           <BoutiqueManager
             onFetchProducts={onFetchBoutiqueProducts}
@@ -1070,6 +1199,9 @@ export function AdminPanel({ open, onClose, items, onAddItem, onUpdateItem, onDe
             </button>
             <button className="sb-btn-ghost sb-admin-staff-link" onClick={() => setView("returns")}>
               Retours →
+            </button>
+            <button className="sb-btn-ghost sb-admin-staff-link" onClick={() => setView("analytics")}>
+              Statistiques (revenus par mois) →
             </button>
             <button
               className="sb-btn-ghost sb-admin-staff-link"

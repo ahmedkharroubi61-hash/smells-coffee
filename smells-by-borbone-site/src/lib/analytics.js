@@ -26,3 +26,30 @@ export function overallMonthlyAverage(byMonth) {
   const totals = Object.values(byMonth).map((m) => m.total);
   return totals.length ? totals.reduce((a, b) => a + b, 0) / totals.length : 0;
 }
+
+// Roll month buckets (from monthlyBreakdown) into per-year buckets.
+export function yearlyBreakdown(byMonth) {
+  const byYear = {};
+  for (const m of Object.values(byMonth)) {
+    const y = m.key.slice(0, 4); // "YYYY"
+    if (!byYear[y]) byYear[y] = { key: y, total: 0, orders: 0, months: [] };
+    byYear[y].months.push(m);
+    byYear[y].total += m.total;
+    byYear[y].orders += m.orders;
+  }
+  return byYear;
+}
+
+// Best month, worst month, and average per active month for a year.
+export function yearStats(year) {
+  if (!year || !year.months.length) return { best: null, worst: null, avgMonth: 0 };
+  const best = year.months.reduce((a, b) => (b.total > a.total ? b : a));
+  const worst = year.months.reduce((a, b) => (b.total < a.total ? b : a));
+  return { best, worst, avgMonth: year.total / year.months.length };
+}
+
+// Average yearly total across all years.
+export function overallYearlyAverage(byYear) {
+  const totals = Object.values(byYear).map((y) => y.total);
+  return totals.length ? totals.reduce((a, b) => a + b, 0) / totals.length : 0;
+}

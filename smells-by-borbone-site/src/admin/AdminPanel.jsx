@@ -3,7 +3,10 @@ import { Coffee, Lock, Pencil, Plus, Trash2, X } from "lucide-react";
 import { PAYMENT_API_BASE_URL } from "../config.js";
 import { categories } from "../data.js";
 import { formatPrice, fmtDT } from "../lib/format.js";
-import { monthlyBreakdown, monthStats, overallMonthlyAverage } from "../lib/analytics.js";
+import {
+  monthlyBreakdown, monthStats, overallMonthlyAverage,
+  yearlyBreakdown, yearStats, overallYearlyAverage,
+} from "../lib/analytics.js";
 import { printShiftReport, printDayClose } from "../lib/receipts.js";
 
 function ShiftReportsManager({ onFetch, onDelete, onBack }) {
@@ -886,35 +889,71 @@ const monthLabel = (key) => {
 const dayLabel = (iso) =>
   new Date(iso + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "2-digit" });
 
-// Owner: monthly income analytics — best/worst day of a month, that month's
-// daily average, and how each month stacks up against the others.
+// Owner income analytics. Month view: best/worst day of a month + that month
+// vs the other months. Year view: best/worst month of a year + that year vs
+// the other years.
 function AnalyticsManager({ onFetch, onBack }) {
   const [days, setDays] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sel, setSel] = useState(null);
+  const [mode, setMode] = useState("month"); // "month" | "year"
+  const [selMonth, setSelMonth] = useState(null);
+  const [selYear, setSelYear] = useState(null);
 
   useEffect(() => {
     (async () => {
       const d = (await onFetch()) || [];
       setDays(d);
       const months = [...new Set(d.map((x) => x.date.slice(0, 7)))].sort();
-      if (months.length) setSel(months[months.length - 1]);
+      const years = [...new Set(d.map((x) => x.date.slice(0, 4)))].sort();
+      if (months.length) setSelMonth(months[months.length - 1]);
+      if (years.length) setSelYear(years[years.length - 1]);
       setLoading(false);
     })();
   }, [onFetch]);
 
   const byMonth = monthlyBreakdown(days);
-  const monthKeys = Object.keys(byMonth).sort();
-  const maxTotal = Math.max(1, ...monthKeys.map((k) => byMonth[k].total));
-  const overallAvg = overallMonthlyAverage(byMonth);
+  const byYear = yearlyBreakdown(byMonth);
+  const isYear = mode === "year";
 
-  const cur = sel ? byMonth[sel] : null;
-  const { best, worst, avgDay } = monthStats(cur);
+  const buckets = isYear ? byYear : byMonth;
+  const keys = Object.keys(buckets).sort();
+  const sel = isYear ? selYear : selMonth;
+  const setSel = isYear ? setSelYear : setSelMonth;
+  const cur = sel ? buckets[sel] : null;
+  const maxTotal = Math.max(1, ...keys.map((k) => buckets[k].total));
+  const overallAvg = isYear ? overallYearlyAverage(byYear) : overallMonthlyAverage(byMonth);
   const delta = cur ? cur.total - overallAvg : 0;
+
+  const stats = isYear ? yearStats(cur) : monthStats(cur);
+  const { best, worst } = stats;
+  const periodAvg = isYear ? stats.avgMonth : stats.avgDay;
+
+  // period-aware labels
+  const T = {
+    selector: isYear ? "Année" : "Mois",
+    total: isYear ? "Total de l'année" : "Total du mois",
+    avgUnit: isYear ? "/ mois" : "/ jour",
+    best: isYear ? "Meilleur mois" : "Meilleur jour",
+    worst: isYear ? "Mois le plus faible" : "Jour le plus faible",
+    vs: isYear ? "vs moyenne annuelle" : "vs moyenne mensuelle",
+    compare: isYear ? "Comparaison annuelle" : "Comparaison mensuelle",
+    avgLine: isYear
+      ? `Moyenne sur ${keys.length} année(s)`
+      : `Moyenne sur ${keys.length} mois`,
+    avgPer: isYear ? "par an" : "par mois",
+  };
+  const optLabel = (k) => (isYear ? k : monthLabel(k));
+  const barLabel = (k) => (isYear ? k : MONTHS_FR[Number(k.split("-")[1]) - 1].slice(0, 3));
+  const bucketVal = (b) => (isYear ? fmtDT(b.total) : fmtDT(b.totalMillimes));
+  const bucketSub = (b) =>
+    isYear ? `${monthLabel(b.key)} · ${b.orders} cmd` : `${dayLabel(b.date)} · ${b.ordersCount} cmd`;
 
   return (
     <>
       <style>{`
+        .sb-an-toggle { display: flex; gap: 8px; margin: 6px 0 16px; }
+        .sb-an-toggle button { flex: 1; padding: 9px; border-radius: 10px; border: 1px solid rgba(24,43,85,.18); background: #fff; color: rgba(24,43,85,.6); font-weight: 600; font-size: .9rem; cursor: pointer; }
+        .sb-an-toggle button.is-on { background: var(--navy); color: #fff; border-color: var(--navy); }
         .sb-an-select { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(24,43,85,.22); background: var(--white-warm); color: var(--ink); font-family: var(--sans); font-size: .95rem; margin: 4px 0 20px; }
         .sb-an-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
         .sb-an-card { border: 1px solid rgba(24,43,85,.12); border-radius: 12px; padding: 12px 14px; background: #fff; }
@@ -940,15 +979,20 @@ function AnalyticsManager({ onFetch, onBack }) {
 
       {loading ? (
         <p className="sb-admin-intro">Chargement…</p>
-      ) : monthKeys.length === 0 ? (
+      ) : keys.length === 0 ? (
         <p className="sb-admin-intro">Aucune donnée encore. Les statistiques apparaissent dès les premières commandes servies.</p>
       ) : (
         <>
+          <div className="sb-an-toggle">
+            <button className={mode === "month" ? "is-on" : ""} onClick={() => setMode("month")}>Par mois</button>
+            <button className={mode === "year" ? "is-on" : ""} onClick={() => setMode("year")}>Par année</button>
+          </div>
+
           <label className="sb-admin-field" style={{ marginBottom: 0 }}>
-            Mois
+            {T.selector}
             <select className="sb-an-select" value={sel || ""} onChange={(e) => setSel(e.target.value)}>
-              {[...monthKeys].reverse().map((k) => (
-                <option key={k} value={k}>{monthLabel(k)}</option>
+              {[...keys].reverse().map((k) => (
+                <option key={k} value={k}>{optLabel(k)}</option>
               ))}
             </select>
           </label>
@@ -956,44 +1000,44 @@ function AnalyticsManager({ onFetch, onBack }) {
           {cur && (
             <div className="sb-an-grid">
               <div className="sb-an-card sb-an-card--wide">
-                <p className="sb-an-card__label">Total du mois · {cur.orders} commande(s)</p>
+                <p className="sb-an-card__label">{T.total} · {cur.orders} commande(s)</p>
                 <div className="sb-an-card__val">{fmtDT(cur.total)}</div>
                 <span className="sb-an-card__sub">
-                  Moyenne : {fmtDT(avgDay)} / jour ·{" "}
+                  Moyenne : {fmtDT(periodAvg)} {T.avgUnit} ·{" "}
                   <span className={delta >= 0 ? "sb-an-delta--up" : "sb-an-delta--down"}>
-                    {delta >= 0 ? "▲" : "▼"} {fmtDT(Math.abs(delta))} vs moyenne mensuelle
+                    {delta >= 0 ? "▲" : "▼"} {fmtDT(Math.abs(delta))} {T.vs}
                   </span>
                 </span>
               </div>
               <div className="sb-an-card">
-                <p className="sb-an-card__label sb-an-best">Meilleur jour</p>
-                <div className="sb-an-card__val">{best ? fmtDT(best.totalMillimes) : "—"}</div>
-                <span className="sb-an-card__sub">{best ? `${dayLabel(best.date)} · ${best.ordersCount} cmd` : ""}</span>
+                <p className="sb-an-card__label sb-an-best">{T.best}</p>
+                <div className="sb-an-card__val">{best ? bucketVal(best) : "—"}</div>
+                <span className="sb-an-card__sub">{best ? bucketSub(best) : ""}</span>
               </div>
               <div className="sb-an-card">
-                <p className="sb-an-card__label sb-an-worst">Jour le plus faible</p>
-                <div className="sb-an-card__val">{worst ? fmtDT(worst.totalMillimes) : "—"}</div>
-                <span className="sb-an-card__sub">{worst ? `${dayLabel(worst.date)} · ${worst.ordersCount} cmd` : ""}</span>
+                <p className="sb-an-card__label sb-an-worst">{T.worst}</p>
+                <div className="sb-an-card__val">{worst ? bucketVal(worst) : "—"}</div>
+                <span className="sb-an-card__sub">{worst ? bucketSub(worst) : ""}</span>
               </div>
             </div>
           )}
 
-          <h3 className="sb-admin-group__title" style={{ marginTop: 20 }}>Comparaison mensuelle</h3>
+          <h3 className="sb-admin-group__title" style={{ marginTop: 20 }}>{T.compare}</h3>
           <div className="sb-an-chart">
-            {monthKeys.map((k) => (
+            {keys.map((k) => (
               <button
                 key={k}
                 className={`sb-an-bar ${k === sel ? "is-sel" : ""}`}
                 onClick={() => setSel(k)}
-                title={`${monthLabel(k)} — ${fmtDT(byMonth[k].total)}`}
+                title={`${optLabel(k)} — ${fmtDT(buckets[k].total)}`}
               >
-                <span className="sb-an-bar__fill" style={{ height: `${(byMonth[k].total / maxTotal) * 100}%` }} />
-                <span className="sb-an-bar__lbl">{MONTHS_FR[Number(k.split("-")[1]) - 1].slice(0, 3)}</span>
+                <span className="sb-an-bar__fill" style={{ height: `${(buckets[k].total / maxTotal) * 100}%` }} />
+                <span className="sb-an-bar__lbl">{barLabel(k)}</span>
               </button>
             ))}
           </div>
           <p className="sb-an-avgline">
-            Moyenne sur {monthKeys.length} mois : <strong>{fmtDT(overallAvg)}</strong> par mois.
+            {T.avgLine} : <strong>{fmtDT(overallAvg)}</strong> {T.avgPer}.
           </p>
         </>
       )}

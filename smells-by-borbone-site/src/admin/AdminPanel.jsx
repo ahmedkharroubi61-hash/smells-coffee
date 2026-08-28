@@ -1245,7 +1245,7 @@ export function AdminPanel({ open, onClose, items, onAddItem, onUpdateItem, onDe
               Retours →
             </button>
             <button className="sb-btn-ghost sb-admin-staff-link" onClick={() => setView("analytics")}>
-              Statistiques (revenus par mois) →
+              Statistiques →
             </button>
             <button
               className="sb-btn-ghost sb-admin-staff-link"
